@@ -88,6 +88,7 @@ The imports are followed automatically.
 
 Generation stops with an error when a constraint doesn't fit the slot's type: `pattern` needs a
 string range, and `minimum_value`/`maximum_value` need a numeric one. Neither applies to enums.
+The bounds are checked but not written to the schema, since numbers are written as text.
 
 ## Registering schemas
 
@@ -178,8 +179,11 @@ Every class that is not abstract or a mixin becomes a draft-07 JSON schema. For 
 - an enum value is its LinkML `title:`, or else its name (`atac_seq: {title: ATAC-seq}` →
   `ATAC-seq`); values are sorted, and if any has a description they become `oneOf` entries
   with `const`, `title` and `description`;
-- `integer`, `float`, `double` and `decimal` are typed `number`; `date`, `datetime` and `uri`
-  are strings with a `format`;
+- every value is a string, because Curator's grid holds every cell as text: `integer`,
+  `float`, `double` and `decimal` carry a digit pattern, `boolean` is `true` or `false`, and
+  `date`, `datetime` and `uri` have a `format`;
+- a required text slot without its own `pattern` gets `\S`, so a blank cell, which the grid
+  stores as an empty string, is flagged;
 - multivalued slots are arrays of the single-value schema;
 - `required` lists the slots that class requires;
 - `$id` is a placeholder, which `curator-register` replaces.

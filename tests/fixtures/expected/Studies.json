@@ -56,6 +56,7 @@
     },
     "StudyId": {
       "description": "Study identifier linking to the Studies table (syn75404711).",
+      "pattern": "\\S",
       "title": "Study_id",
       "type": "string"
     },
@@ -69,6 +70,7 @@
     },
     "StudyName": {
       "description": "Full display name of the study.",
+      "pattern": "\\S",
       "title": "Study Name",
       "type": "string"
     },

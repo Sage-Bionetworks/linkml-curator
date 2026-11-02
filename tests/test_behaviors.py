@@ -21,8 +21,15 @@ def test_property_keys_are_pascal_case(schemas):
             assert key in schema["properties"], key
 
 
-def test_integer_slots_are_numbers(schemas):
-    assert schemas["Landscape"]["properties"]["ExpectedNumberOfFiles"]["type"] == "number"
+def test_integer_slots_are_digit_strings(schemas):
+    # The grid holds every cell as text, so a number type would flag every row.
+    prop = schemas["Landscape"]["properties"]["ExpectedNumberOfFiles"]
+    assert prop["type"] == "string" and prop["pattern"] == "^-?[0-9]+$"
+
+
+def test_required_text_must_be_non_blank(schemas):
+    # The grid stores a blank cell as "", which `required` accepts.
+    assert schemas["Landscape"]["properties"]["LandscapeId"]["pattern"] == r"\S"
 
 
 def test_titles(schemas):

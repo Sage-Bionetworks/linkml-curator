@@ -334,13 +334,15 @@
     },
     "PublicationTitle": {
       "description": "Full title of the publication.",
+      "pattern": "\\S",
       "title": "Publication Title",
       "type": "string"
     },
     "PublicationYear": {
       "description": "Year of publication.",
+      "pattern": "^-?[0-9]+$",
       "title": "Publication Year",
-      "type": "number"
+      "type": "string"
     },
     "StudyId": {
       "description": "Study identifier linking to the Studies table (syn75404711).",

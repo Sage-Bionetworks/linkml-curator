@@ -16,6 +16,7 @@
     "ContextOfUse": {
       "description": "Free-text statement of the intended context(s) of use for this dataset \u2014 how and for what purpose the data is meant to be used, following the FDA Biomarker Qualification Program's Context of Use framework (https://www.fda.gov/drugs/biomarker-qualification-program/context-use). Multiple values permitted.",
       "items": {
+        "pattern": "\\S",
         "type": "string"
       },
       "title": "Context Of Use",
@@ -23,6 +24,7 @@
     },
     "DataContributionLead": {
       "description": "Name of the individual responsible for uploading files.",
+      "pattern": "\\S",
       "title": "Data Contribution Lead",
       "type": "string"
     },
@@ -301,6 +303,7 @@
     },
     "DatasetDescription": {
       "description": "A text description of the files contained in this dataset.",
+      "pattern": "\\S",
       "title": "Dataset Description",
       "type": "string"
     },
@@ -440,6 +443,7 @@
     },
     "DatasetName": {
       "description": "Name of the dataset.",
+      "pattern": "\\S",
       "title": "Dataset Name",
       "type": "string"
     },
@@ -505,31 +509,37 @@
     },
     "ExpectedNumberOfFiles": {
       "description": "Number of files expected to be uploaded as part of this dataset.",
+      "pattern": "^-?[0-9]+$",
       "title": "Expected Number Of Files",
-      "type": "number"
+      "type": "string"
     },
     "ExpectedNumberOfSamples": {
       "description": "Estimated total number of physical biospecimen samples represented in the dataset (e.g. 200 participants at 3 time points = 600 total samples). Distinct from expectedNumberOfFiles, which counts the files expected to be submitted.",
+      "pattern": "^-?[0-9]+$",
       "title": "Expected Number Of Samples",
-      "type": "number"
+      "type": "string"
     },
     "LandscapeId": {
       "description": "Unique identifier for the landscape entry.",
+      "pattern": "\\S",
       "title": "Landscape_id",
       "type": "string"
     },
     "StudyAim": {
       "description": "Key connecting the expected data to aims in the research proposal.",
+      "pattern": "\\S",
       "title": "Study Aim",
       "type": "string"
     },
     "StudyName": {
       "description": "Full display name of the study.",
+      "pattern": "\\S",
       "title": "Study Name",
       "type": "string"
     },
     "UploadByDate": {
       "description": "Non-binding estimated date by which files are expected to be uploaded.",
+      "pattern": "\\S",
       "title": "Upload By Date",
       "type": "string"
     }
