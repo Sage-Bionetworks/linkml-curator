@@ -18,6 +18,7 @@
     },
     "GrantId": {
       "description": "Grant identifier linking to the Grants table (syn75404715).",
+      "pattern": "\\S",
       "title": "Grant_id",
       "type": "string"
     },

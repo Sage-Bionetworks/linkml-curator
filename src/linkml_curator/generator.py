@@ -8,7 +8,11 @@ draft-07 JSON schema shaped for Curator's grid and the RJSF forms that render it
 - an enum value is its LinkML title, or its name if it has none; values are
   sorted, and if any has a description the enum becomes oneOf/const entries,
   the only per-value metadata RJSF reads;
-- integer, float, double and decimal are typed number;
+- every value is a string, because the grid holds every cell as text: numbers
+  carry a digit pattern and booleans are "true" or "false"; minimum_value and
+  maximum_value are checked against the range but not written;
+- a required text slot must hold a non-blank character, because the grid stores a
+  blank cell as "", which `required` accepts;
 - multivalued slots are arrays of the single-value schema.
 
 Usage:
@@ -28,8 +32,12 @@ from linkml_runtime.linkml_model.meta import EnumDefinition, PermissibleValue, S
 
 from linkml_curator import __version__
 
-TYPES = {"integer": "number", "float": "number", "double": "number", "decimal": "number",
-         "boolean": "boolean"}
+DECIMAL = r"^-?[0-9]*\.?[0-9]+$"
+STRING_FORMS = {"integer": {"pattern": r"^-?[0-9]+$"}, "float": {"pattern": DECIMAL},
+                "double": {"pattern": DECIMAL}, "decimal": {"pattern": DECIMAL},
+                "boolean": {"enum": ["false", "true"]}}
+"""What a typed value looks like as the text the grid holds."""
+NON_BLANK = r"\S"
 FORMATS = {"date": "date", "datetime": "date-time", "uri": "uri"}
 
 
@@ -65,7 +73,14 @@ def enum_values(enum: EnumDefinition) -> list[tuple[str, PermissibleValue]]:
 def value_schema(sv: SchemaView, slot: SlotDefinition) -> dict:
     """Schema for one value of the slot."""
     enum = sv.all_enums().get(slot.range)
-    json_type = None if enum else TYPES.get(slot.range, "string")
+    if enum:
+        kind = "an enum"
+    elif slot.range == "boolean":
+        kind = "a boolean"
+    elif slot.range in STRING_FORMS:
+        kind = "a number"
+    else:
+        kind = "a string"
     constraints = {}
     for keyword, value, needs in (
         ("pattern", slot.pattern, "string"),
@@ -74,12 +89,15 @@ def value_schema(sv: SchemaView, slot: SlotDefinition) -> dict:
     ):
         if value is None:
             continue
-        if json_type != needs:
+        if kind != f"a {needs}":
             raise ValueError(
                 f"Slot {slot.name!r} sets {keyword} ({value!r}), which needs a {needs} range, "
-                f"but its range {slot.range!r} is emitted as {json_type or 'an enum'}."
+                f"but its range {slot.range!r} is {kind}."
             )
-        constraints[keyword.removesuffix("_value")] = value
+        if keyword == "pattern":
+            constraints["pattern"] = value
+    if kind == "a string" and slot.required and "pattern" not in constraints:
+        constraints["pattern"] = NON_BLANK
 
     if enum:
         values = sorted(enum_values(enum), key=lambda v: v[0])
@@ -91,7 +109,7 @@ def value_schema(sv: SchemaView, slot: SlotDefinition) -> dict:
             for v, pv in values
         ]}
 
-    schema = {"type": json_type}
+    schema = {"type": "string", **STRING_FORMS.get(slot.range, {})}
     if slot.range in FORMATS:
         schema["format"] = FORMATS[slot.range]
     return schema | constraints

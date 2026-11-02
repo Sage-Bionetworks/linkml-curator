@@ -319,13 +319,15 @@
     },
     "DatasetItemCount": {
       "description": "Number of files or items in the dataset.",
+      "pattern": "^-?[0-9]+$",
       "title": "Dataset Item Count",
-      "type": "number"
+      "type": "string"
     },
     "DatasetSizeInBytes": {
       "description": "Total size of the dataset in bytes.",
+      "pattern": "^-?[0-9]+$",
       "title": "Dataset Size In Bytes",
-      "type": "number"
+      "type": "string"
     },
     "Description": {
       "description": "Free-text description.",
@@ -480,8 +482,12 @@
     },
     "HasCroissantMetadata": {
       "description": "Whether the dataset has associated Croissant-format metadata.",
+      "enum": [
+        "false",
+        "true"
+      ],
       "title": "Has Croissant Metadata",
-      "type": "boolean"
+      "type": "string"
     },
     "NamId": {
       "description": "NAM identifier(s) linking to the NAMs table (syn75404716).",
@@ -543,6 +549,7 @@
     },
     "Title": {
       "description": "Display title of the dataset.",
+      "pattern": "\\S",
       "title": "Title",
       "type": "string"
     }
