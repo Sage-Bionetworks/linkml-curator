@@ -3,6 +3,7 @@
 import pytest
 from linkml_runtime import SchemaView
 
+from linkml_curator.cadjusts import grid_text, non_blank_required
 from linkml_curator.generator import class_schema, template_classes
 
 SCHEMA = """
@@ -33,17 +34,18 @@ slots:
   needed: {required: true}
   needed_list: {required: true, multivalued: true}
   needed_code: {required: true, pattern: "^[A-Z]+$"}
+  needed_count: {required: true, range: integer}
 classes:
   Base: {abstract: true, slots: [nodesc]}
   Probe:
     is_a: Base
     slots: [bounded, counts, colors, snake_case_name, size, fancy, flag, needed, needed_list,
-            needed_code]
+            needed_code, needed_count]
 """
 
 
-def props() -> dict:
-    return class_schema(SchemaView(SCHEMA), "Probe")["properties"]
+def props(**kwargs) -> dict:
+    return class_schema(SchemaView(SCHEMA), "Probe", **kwargs)["properties"]
 
 
 def test_abstract_classes_are_not_templates():
@@ -54,20 +56,34 @@ def test_inherited_slot_without_description():
     assert props()["Nodesc"] == {"title": "Nodesc", "type": "string"}
 
 
-def test_numbers_are_digit_strings_without_bounds():
-    assert props()["Bounded"] == {"title": "Bounded", "type": "string", "pattern": "^-?[0-9]+$"}
+def test_without_cadjusts_types_and_bounds_are_kept():
+    p = props(cadjusts=())
+    assert p["Bounded"] == {"title": "Bounded", "type": "integer", "minimum": 1, "maximum": 10}
+    assert p["Counts"]["items"] == {"type": "number"}
+    assert p["Flag"] == {"title": "Flag", "type": "boolean"}
+    assert p["Needed"] == {"title": "Needed", "type": "string"}
 
 
-def test_booleans_are_strings():
-    assert props()["Flag"] == {"title": "Flag", "type": "string", "enum": ["false", "true"]}
+def test_grid_text_writes_numbers_and_booleans_as_strings():
+    p = props(cadjusts=(grid_text,))
+    assert p["Bounded"] == {"title": "Bounded", "type": "string", "pattern": "^-?[0-9]+$"}
+    assert p["Counts"]["items"] == {"type": "string", "pattern": r"^-?[0-9]*\.?[0-9]+$"}
+    assert p["Flag"] == {"title": "Flag", "type": "string", "enum": ["false", "true"]}
 
 
-def test_required_text_must_be_non_blank():
-    p = props()
+def test_non_blank_required_patterns_required_text():
+    p = props(cadjusts=(non_blank_required,))
     assert p["Needed"]["pattern"] == r"\S"
     assert p["NeededList"]["items"] == {"type": "string", "pattern": r"\S"}
     assert p["NeededCode"]["pattern"] == "^[A-Z]+$"
     assert "pattern" not in p["Fancy"]
+    assert "pattern" not in p["NeededCount"]
+
+
+def test_cadjusts_do_not_depend_on_order():
+    forward = props(cadjusts=(grid_text, non_blank_required))
+    assert forward == props(cadjusts=(non_blank_required, grid_text))
+    assert forward["NeededCount"]["pattern"] == "^-?[0-9]+$"
 
 
 def test_multivalued_values_are_arrays():

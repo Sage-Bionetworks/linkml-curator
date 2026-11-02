@@ -45,14 +45,11 @@ that keep their spaces (`Level 1`) alongside PascalCase keys (`DatasetAssay`), w
 needs. `gen-curator` writes the JSON from LinkML's SchemaView instead, so this project owns the
 output shape. If Curator's expectations change, the generator has to change with them.
 
-### Every value is a string
+### Cadjusts are kept apart
 
-Curator's grid loads a RecordSet's cells as text, whatever the bound schema says, so a number field holds `"49"` and a `number` or `boolean` type would flag every row.
-Numbers are written as strings with a digit pattern and booleans as the strings `true` and `false`. `minimum_value` and `maximum_value` can't be expressed on a string, so they are dropped. Keep `range: integer` in the model anyway, for what it means.
-
-### Required text must be non-blank
-
-The grid stores a blank text cell as `""` and a blank list cell as `[""]`, and `required` accepts both. A required string slot, or each item of a required list, gets the pattern `\S` unless the model gives it a pattern of its own.
+`class_schema` builds the schema the LinkML model describes, with `integer`, `number` and `boolean` types and their bounds. Rewrites for how Curator behaves today, called cadjusts (Curator adjustments), live in `src/linkml_curator/cadjusts.py`, one function per behavior, and run over that schema in the order of `CADJUSTS`. Each function's docstring says what Curator does and how to check whether it still does; `gen-curator --no-cadjusts` generates the schema to check with.
+A rewrite that Curator no longer needs comes out by deleting it from `CADJUSTS`, deleting its test in `tests/test_generator.py`, and regenerating `tests/fixtures/expected/`. A new one is a function in the same module with its own test. Cadjusts must not depend on each other's order, which `test_cadjusts_do_not_depend_on_order` checks.
+Keep `range: integer` and the bounds in a model even while `grid_text` writes numbers as text, for what they mean and for when it comes out.
 
 ### Enum values with descriptions become `oneOf`
 

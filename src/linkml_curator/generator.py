@@ -8,12 +8,11 @@ draft-07 JSON schema shaped for Curator's grid and the RJSF forms that render it
 - an enum value is its LinkML title, or its name if it has none; values are
   sorted, and if any has a description the enum becomes oneOf/const entries,
   the only per-value metadata RJSF reads;
-- every value is a string, because the grid holds every cell as text: numbers
-  carry a digit pattern and booleans are "true" or "false"; minimum_value and
-  maximum_value are checked against the range but not written;
-- a required text slot must hold a non-blank character, because the grid stores a
-  blank cell as "", which `required` accepts;
+- integer is typed integer; float, double and decimal are typed number;
 - multivalued slots are arrays of the single-value schema.
+
+The cadjusts (Curator adjustments) then rewrite that schema for how Curator behaves
+today; --no-cadjusts leaves them out.
 
 Usage:
     gen-curator schema.yaml -d DIR       # one <Class>.json per template class
@@ -23,6 +22,7 @@ Usage:
 import json
 import os
 import re
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 import click
@@ -31,13 +31,9 @@ from linkml_runtime import SchemaView
 from linkml_runtime.linkml_model.meta import EnumDefinition, PermissibleValue, SlotDefinition
 
 from linkml_curator import __version__
+from linkml_curator.cadjusts import CADJUSTS
 
-DECIMAL = r"^-?[0-9]*\.?[0-9]+$"
-STRING_FORMS = {"integer": {"pattern": r"^-?[0-9]+$"}, "float": {"pattern": DECIMAL},
-                "double": {"pattern": DECIMAL}, "decimal": {"pattern": DECIMAL},
-                "boolean": {"enum": ["false", "true"]}}
-"""What a typed value looks like as the text the grid holds."""
-NON_BLANK = r"\S"
+NUMBERS = {"integer": "integer", "float": "number", "double": "number", "decimal": "number"}
 FORMATS = {"date": "date", "datetime": "date-time", "uri": "uri"}
 
 
@@ -77,7 +73,7 @@ def value_schema(sv: SchemaView, slot: SlotDefinition) -> dict:
         kind = "an enum"
     elif slot.range == "boolean":
         kind = "a boolean"
-    elif slot.range in STRING_FORMS:
+    elif slot.range in NUMBERS:
         kind = "a number"
     else:
         kind = "a string"
@@ -94,10 +90,7 @@ def value_schema(sv: SchemaView, slot: SlotDefinition) -> dict:
                 f"Slot {slot.name!r} sets {keyword} ({value!r}), which needs a {needs} range, "
                 f"but its range {slot.range!r} is {kind}."
             )
-        if keyword == "pattern":
-            constraints["pattern"] = value
-    if kind == "a string" and slot.required and "pattern" not in constraints:
-        constraints["pattern"] = NON_BLANK
+        constraints[keyword.removesuffix("_value")] = value
 
     if enum:
         values = sorted(enum_values(enum), key=lambda v: v[0])
@@ -109,13 +102,17 @@ def value_schema(sv: SchemaView, slot: SlotDefinition) -> dict:
             for v, pv in values
         ]}
 
-    schema = {"type": "string", **STRING_FORMS.get(slot.range, {})}
+    schema = {"type": "boolean" if kind == "a boolean" else NUMBERS.get(slot.range, "string")}
     if slot.range in FORMATS:
         schema["format"] = FORMATS[slot.range]
     return schema | constraints
 
 
-def class_schema(sv: SchemaView, class_name: str) -> dict:
+def class_schema(
+    sv: SchemaView,
+    class_name: str,
+    cadjusts: Sequence[Callable[[dict], None]] = CADJUSTS,
+) -> dict:
     properties, required = {}, []
     for name in sv.class_slots(class_name):
         slot = sv.induced_slot(name, class_name)
@@ -139,6 +136,8 @@ def class_schema(sv: SchemaView, class_name: str) -> dict:
     }
     if description := sv.get_class(class_name).description:
         schema["description"] = normalise_text(description)
+    for cadjust in cadjusts:
+        cadjust(schema)
     return schema
 
 
@@ -162,6 +161,12 @@ class CuratorGenerator(Generator):
     directory: str | None = None
     """Write one <Class>.json per class here instead of returning the schema."""
 
+    cadjusts: bool = True
+    """Apply cadjusts; without them the schema is what the model describes."""
+
+    def _schema(self, class_name: str) -> dict:
+        return class_schema(self.schemaview, class_name, CADJUSTS if self.cadjusts else ())
+
     def serialize(self, **kwargs) -> str:
         templates = template_classes(self.schemaview)
         if self.top_class:
@@ -174,12 +179,12 @@ class CuratorGenerator(Generator):
                     f"The schema has {len(templates)} template classes. "
                     "Pass --directory to write them all, or --top-class to pick one."
                 )
-            return _dump(class_schema(self.schemaview, templates[0]))
+            return _dump(self._schema(templates[0]))
 
         os.makedirs(self.directory, exist_ok=True)
         for name in templates:
             with open(os.path.join(self.directory, f"{name}.json"), "w") as f:
-                f.write(_dump(class_schema(self.schemaview, name)))
+                f.write(_dump(self._schema(name)))
         return ""
 
 
@@ -193,6 +198,13 @@ class CuratorGenerator(Generator):
     help="Write one <Class>.json per template class to this directory.",
 )
 @click.option("-t", "--top-class", help="Generate only this class, to stdout.")
+@click.option(
+    "--cadjusts/--no-cadjusts",
+    default=True,
+    show_default=True,
+    help="Rewrite the schema for how Curator behaves today. Turn off to check whether "
+    "Curator still needs them.",
+)
 def cli(yamlfile, **args):
     """Generate Synapse Curator JSON schemas from a LinkML model."""
     output = CuratorGenerator(yamlfile, **args).serialize()
