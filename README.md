@@ -5,7 +5,7 @@ Turn a [LinkML](https://linkml.io) data model into the JSON schemas that
 organization.
 
 >[!WARNING]
->This tool is **still in early development** at Sage Bionetworks. Bug reports and questions are welcome in the [issue tracker](https://github.com/sagebio-ada/linkml-curator/issues).
+>This tool is **still in early development** at Sage Bionetworks. Bug reports and questions are welcome in the [issue tracker](https://github.com/Sage-Bionetworks/linkml-curator/issues).
 
 The tool has three commands:
 
@@ -131,7 +131,7 @@ other than the model's, pass `--version 1.2.1` instead of `--schema`.
 Open a terminal in the root of your LinkML project and run:
 
 ```bash
-uv add --dev "linkml-curator @ git+https://github.com/sagebio-ada/linkml-curator"
+uv add --dev "linkml-curator @ git+https://github.com/Sage-Bionetworks/linkml-curator"
 ```
 
 That records the tool as a dependency of the project, so anyone who clones the project gets all

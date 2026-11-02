@@ -29,8 +29,8 @@ dependencies = [
 ]
 
 [project.urls]
-Repository = "https://github.com/sagebio-ada/linkml-curator"
-Issues = "https://github.com/sagebio-ada/linkml-curator/issues"
+Repository = "https://github.com/Sage-Bionetworks/linkml-curator"
+Issues = "https://github.com/Sage-Bionetworks/linkml-curator/issues"
 
 [project.scripts]
 gen-curator = "linkml_curator.generator:cli"
