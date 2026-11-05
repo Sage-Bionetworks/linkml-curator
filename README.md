@@ -31,7 +31,7 @@ You need two things:
 
 ## Installing
 
-If linml-curator is already configured in your your LinkML project, you should interact with it by opening a terminal in the root of that repository. The NAMHub project, for example:
+If linkml-curator is already configured in your LinkML project, you should interact with it by opening a terminal in the root of that repository. The NAMHub project, for example:
 
 ```sh
 git clone git@github.com:sagebio-ada/nam-hub-models.git
@@ -40,6 +40,17 @@ uv sync
 ```
 
 All necessary dependencies should be installed at this point.
+
+### Adding to your repo
+
+If your LinkML project doesn't use linkml-curator yet, open a terminal in its root and run:
+
+```bash
+uv add --dev "linkml-curator @ git+https://github.com/Sage-Bionetworks/linkml-curator@v0.4.0"
+```
+
+That records the tool as a dependency of the project, so anyone who clones the project gets all
+three commands with `uv sync`. Pin a release tag, as here, so the schemas a project registers trace to one version of the generator. To upgrade, run the command again with the newer tag.
 
 ## Checking the model
 
@@ -126,22 +137,10 @@ other than the model's, pass `--version 1.2.1` instead of `--schema`.
 
 ## Running it automatically
 
-
-### Adding to your repo
-
-Open a terminal in the root of your LinkML project and run:
-
-```bash
-uv add --dev "linkml-curator @ git+https://github.com/Sage-Bionetworks/linkml-curator"
-```
-
-That records the tool as a dependency of the project, so anyone who clones the project gets all
-three commands with `uv sync`.
-
-### Project task runner
-
 All three commands can run from a project's task runner or from GitHub Actions, so the schemas
 stay in step with the model.
+
+### Project task runner
 
 In a [linkml-project-copier](https://github.com/linkml/linkml-project-copier) project, add
 recipes to `project.justfile` so that `uv run just lint-curator` checks the model and
@@ -157,16 +156,31 @@ gen-curator:
   uv run gen-curator -d {{dest}}/curator {{source_schema_path}}
 ```
 
-In GitHub Actions, store the Synapse token as a repository secret named `SYNAPSE_AUTH_TOKEN`
-and add these steps to a workflow:
+### GitHub Actions
+
+Check and generate on every pull request, and register only when a release is published. A version can be registered once, so a register step that ran on every push would fail from the second run on.
+
+Store the Synapse token as a repository secret named `SYNAPSE_AUTH_TOKEN`, and run the workflow on both events:
+
+```yaml
+on:
+  pull_request:
+  release:
+    types: [published]
+```
+
+and add these steps to its job:
 
 ```yaml
 - run: uv run just lint-curator
 - run: uv run just gen-curator
-- run: uv run curator-register project/curator --org NAMhub --schema src/namhub/schema/namhub.yaml
+- if: github.event_name == 'release'
+  run: uv run curator-register project/curator --org NAMhub --schema src/namhub/schema/namhub.yaml
   env:
     SYNAPSE_AUTH_TOKEN: ${{ secrets.SYNAPSE_AUTH_TOKEN }}
 ```
+
+Bump `version:` in the model before publishing a release, so the register step has a new version to store.
 
 ## What the generator writes
 
